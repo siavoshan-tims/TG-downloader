@@ -1,0 +1,58 @@
+name: 📥 Telegram Downloader
+
+on:
+  workflow_dispatch:
+    inputs:
+      telegram_link:
+        description: '🔗 لینک پست تلگرام'
+        required: true
+        type: string
+        placeholder: 'https://t.me/username/1234'
+      output_folder:
+        description: '📁 نام پوشه خروجی'
+        required: false
+        type: string
+        default: 'downloads'
+        placeholder: 'downloads'
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    
+    steps:
+      - name: 🚀 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: 📥 Download from Telegram
+        run: |
+          python download_telegram.py \
+            --url "${{ github.event.inputs.telegram_link }}" \
+            --output "${{ github.event.inputs.output_folder }}"
+
+      - name: 📤 Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          if git diff --staged --quiet; then
+            echo "ℹ️ هیچ فایل جدیدی دانلود نشد"
+          else
+            git commit -m "📥 دانلود از تلگرام: ${{ github.event.inputs.telegram_link }}"
+            git push
+            echo "✅ فایل‌ها با موفقیت آپلود شدند"
+          fi
